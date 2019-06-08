@@ -56,3 +56,13 @@ function VectorCross(a,b){
 	v.elements[2] = x1*y2 - x2*y1;
 	return v;
 }
+
+function VectorNormalize(v) {
+	var len = Math.sqrt(v.elements[0] ** 2 + v.elements[1] ** 2 + v.elements[2] ** 2);
+	if ((len - 0.00001) > 0) {
+		v.elements[0] /= len;
+		v.elements[1] /= len;
+		v.elements[2] /= len;
+	}
+	return v;
+}
