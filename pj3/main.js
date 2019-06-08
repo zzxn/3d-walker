@@ -33,12 +33,14 @@ function main() {
         return;
     }
 
+    // get variable positions
     if (!assignVariablePositionToProgramObject(gl, generalProgram,
         ['a_Position', 'a_Normal', 'u_ModelMatrix', 'u_MvpMatrix', 'u_NormalMatrix', 'u_LightDirection', 'u_Color',
             'u_AmbientLightColor', 'u_PointLightColor', 'u_CameraPosition'])) {
         return;
     }
 
+    // get variable positions
     if (!assignVariablePositionToProgramObject(gl, textureProgram,
         ['a_Position', 'a_Normal', 'u_ModelMatrix', 'u_MvpMatrix', 'u_NormalMatrix', 'a_TextureCoordinate', 'u_Sampler',
             'u_AmbientLightColor', 'u_LightDirection', 'u_PointLightColor', 'u_CameraPosition'])) {
@@ -229,63 +231,8 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
                 gl.uniform3f(textureProgram.u_PointLightColor, 0.0, 0.0, 0.0);
             }
 
-            // compute moveVector to move camera
-            const moveStep = MOVE_VELOCITY * elapsed;
-            let moveVector = new Vector3();
-            const viewDirection = VectorNormalize(VectorMinus(new Vector3(camera.at), new Vector3(camera.eye)));
-            const rightDirection = VectorNormalize(VectorCross(viewDirection, new Vector3(camera.up)));
-
-            if (pressing.w) {
-                moveVector = VectorAdd(moveVector, viewDirection);
-            } else if (pressing.s) {
-                moveVector = VectorMinus(moveVector, viewDirection);
-            }
-
-            if (pressing.d) {
-                moveVector = VectorAdd(moveVector, rightDirection);
-            } else if (pressing.a) {
-                moveVector = VectorMinus(moveVector, rightDirection);
-            }
-
-            moveVector = VectorMultNum(VectorNormalize(moveVector), moveStep);
-
-            // move camera
-            camera.eye = VectorAdd(moveVector, new Vector3(camera.eye)).elements;
-            camera.at = VectorAdd(moveVector, new Vector3(camera.at)).elements;
-
-            // compute rotateAxis to rotate camera
-            const rotateStep = ROT_VELOCITY * elapsed;
-            let rotateAxis = new Vector3();
-
-            if (pressing.i) {
-                rotateAxis = VectorAdd(rotateAxis, rightDirection);
-            } else if (pressing.k) {
-                rotateAxis = VectorMinus(rotateAxis, rightDirection);
-            }
-
-            if (pressing.j) {
-                rotateAxis = VectorAdd(rotateAxis, new Vector3(camera.up));
-            } else if (pressing.l) {
-                rotateAxis = VectorMinus(rotateAxis, new Vector3(camera.up));
-            }
-
-            // rotate camera
-            if (rotateAxis.elements[0] !== 0 || rotateAxis.elements[1] !== 0 || rotateAxis.elements[2] !== 0) {
-                const rotateMat = new Matrix4().setRotate(rotateStep, ...rotateAxis.elements);
-                let eyeVec = new Vector3(camera.eye);
-                let atVec = new Vector3(camera.at);
-                let upVec = new Vector3(camera.up);
-
-                let viewDirection = VectorMinus(atVec, eyeVec);
-                viewDirection = rotateMat.multiplyVector3(viewDirection);
-
-                upVec = rotateMat.multiplyVector3(upVec);
-
-                atVec = VectorAdd(eyeVec, viewDirection);
-
-                camera.at = atVec.elements;
-                camera.up = upVec.elements;
-            }
+            // move and rotate camera
+            moveAndRotateCamera(camera, elapsed, pressing);
 
             // draw
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -299,6 +246,67 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
     };
 
     monitorKeyboard(Date.now());
+}
+
+// move and rotate camera according to elapsed time and pressed key
+function moveAndRotateCamera(camera, elapsed, pressing) {
+// compute moveVector to move camera
+    const moveStep = MOVE_VELOCITY * elapsed;
+    let moveVector = new Vector3();
+    const viewDirection = VectorNormalize(VectorMinus(new Vector3(camera.at), new Vector3(camera.eye)));
+    const rightDirection = VectorNormalize(VectorCross(viewDirection, new Vector3(camera.up)));
+
+    if (pressing.w) {
+        moveVector = VectorAdd(moveVector, viewDirection);
+    } else if (pressing.s) {
+        moveVector = VectorMinus(moveVector, viewDirection);
+    }
+
+    if (pressing.d) {
+        moveVector = VectorAdd(moveVector, rightDirection);
+    } else if (pressing.a) {
+        moveVector = VectorMinus(moveVector, rightDirection);
+    }
+
+    moveVector = VectorMultNum(VectorNormalize(moveVector), moveStep);
+
+    // move camera
+    camera.eye = VectorAdd(moveVector, new Vector3(camera.eye)).elements;
+    camera.at = VectorAdd(moveVector, new Vector3(camera.at)).elements;
+
+    // compute rotateAxis to rotate camera
+    const rotateStep = ROT_VELOCITY * elapsed;
+    let rotateAxis = new Vector3();
+
+    if (pressing.i) {
+        rotateAxis = VectorAdd(rotateAxis, rightDirection);
+    } else if (pressing.k) {
+        rotateAxis = VectorMinus(rotateAxis, rightDirection);
+    }
+
+    if (pressing.j) {
+        rotateAxis = VectorAdd(rotateAxis, new Vector3(camera.up));
+    } else if (pressing.l) {
+        rotateAxis = VectorMinus(rotateAxis, new Vector3(camera.up));
+    }
+
+    // rotate camera
+    if (rotateAxis.elements[0] !== 0 || rotateAxis.elements[1] !== 0 || rotateAxis.elements[2] !== 0) {
+        const rotateMat = new Matrix4().setRotate(rotateStep, ...rotateAxis.elements);
+        let eyeVec = new Vector3(camera.eye);
+        let atVec = new Vector3(camera.at);
+        let upVec = new Vector3(camera.up);
+
+        let viewDirection = VectorMinus(atVec, eyeVec);
+        viewDirection = rotateMat.multiplyVector3(viewDirection);
+
+        upVec = rotateMat.multiplyVector3(upVec);
+
+        atVec = VectorAdd(eyeVec, viewDirection);
+
+        camera.at = atVec.elements;
+        camera.up = upVec.elements;
+    }
 }
 
 // do some animation according to elapsed time (second)
