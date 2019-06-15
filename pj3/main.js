@@ -188,6 +188,17 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
         }
     });
 
+    const mipmapCheckbox = document.getElementById("mipmap");
+    mipmapCheckbox.addEventListener("change", ev => {
+        if (mipmapCheckbox.checked) {
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        } else {
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        }
+    });
+
     const monitorKeyboard = (lastTime) => {
         requestAnimationFrame(() => {
             let now = Date.now();
