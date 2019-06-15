@@ -16,7 +16,7 @@ let totalResourceToLoad = 8;
 
 function main() {
     const canvas = document.getElementById("webgl");
-    const gl = getWebGLContext(canvas);
+    const gl = canvas.getContext('webgl2');
     if (!gl) {
         console.log('failed to get the rendering context for WebGL');
         return;
@@ -192,10 +192,8 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
     mipmapCheckbox.addEventListener("change", ev => {
         if (mipmapCheckbox.checked) {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         } else {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         }
     });
 
