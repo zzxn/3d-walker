@@ -9,9 +9,11 @@ const generalObjectVertexShaderSrc = `
     varying vec4 v_Color;        // vertex color
     varying vec4 v_Position;
     varying vec3 v_Normal;
+    varying float v_Dist; // distance from camera
     
     void main() {
         gl_Position = u_MvpMatrix * a_Position;
+        v_Dist = gl_Position.w;
         v_Position = a_Position;
         v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
     }
@@ -30,6 +32,7 @@ const generalObjectFragmentShaderSrc = `
     
     varying vec3 v_Normal;
     varying vec4 v_Position;
+    varying float v_Dist; // distance from camera
     
     void main() {
         float cosThetaOfDirectionLight = max(dot(v_Normal, u_LightDirection), 0.0);
@@ -44,11 +47,7 @@ const generalObjectFragmentShaderSrc = `
         
         vec3 color = ambient + diffuse;
         
-        // distance from camera, its a estimation with better performance
-        float dist = v_Position.w;
-    
-        
-        float fogFactor = (140.0 - dist) / (120.0 - 55.0);
+        float fogFactor = (140.0 - v_Dist) / (120.0 - 55.0);
         color = mix(vec3(0.0, 0.0, 0.0), color, clamp(fogFactor, 0.0, 1.0));
         gl_FragColor = vec4(color, u_Color.a);
     }
