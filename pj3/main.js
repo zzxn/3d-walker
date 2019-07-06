@@ -168,6 +168,8 @@ function drawTexturedObject(gl, program, object) {
     gl.drawElements(gl.TRIANGLES, object.numIndices, object.indexBuffer.type, 0);
 }
 
+let xMove = 0, yMove = 0;
+
 function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalProgram, modelObjects) {
     // if pressing.key is true, then key is pressed
     const pressing = {
@@ -188,6 +190,18 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
         }
     });
 
+    const canvas = document.getElementById("webgl");
+
+    canvas.addEventListener("click", ev => {
+        if (!document.pointerLockElement) {
+            canvas.requestPointerLock();
+        }
+    });
+    document.addEventListener("mousemove", ev => {
+        xMove = ev.movementX;
+        yMove = ev.movementY;
+    });
+
     const mipmapCheckbox = document.getElementById("mipmap");
     mipmapCheckbox.addEventListener("change", ev => {
         if (mipmapCheckbox.checked) {
@@ -202,6 +216,16 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
             let now = Date.now();
             const elapsed = (now - lastTime) / 1000;
 
+            // log data
+            const dataElem = document.getElementById("data");
+            dataElem.innerHTML = `
+            <b>position:</b> ${camera.eye[0].toFixed(2)}, ${camera.eye[1].toFixed(2)}, ${camera.eye[2].toFixed(2)}
+            <br>
+            <b>light: </b>${pressing.f ? 'OPEN' : 'CLOSE'}
+            <br>
+            <b>FPS: </b>${Math.trunc(1000 / (now - lastTime))}
+            `;
+
             let someKeyPressed = false;
             for (let key in pressing) {
                 if (pressing[key]) {
@@ -210,7 +234,7 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
                 }
             }
 
-            if (!someKeyPressed) {
+            if (!someKeyPressed && xMove === 0 && yMove === 0) {
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                 gl.useProgram(generalProgram);
                 gl.uniform3f(generalProgram.u_PointLightColor, 0.0, 0.0, 0.0);
@@ -222,7 +246,6 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
                 drawObjects(gl, textureProgram, texturedObjects, generalProgram, modelObjects);
                 monitorKeyboard(now);
                 return;
-
             }
 
             // assign point light color
@@ -259,11 +282,41 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
 
 // move and rotate camera according to elapsed time and pressed key
 function moveAndRotateCamera(camera, elapsed, pressing) {
-// compute moveVector to move camera
+    let viewDirection = VectorNormalize(VectorMinus(new Vector3(camera.at), new Vector3(camera.eye)));
+    let rightDirection = VectorNormalize(VectorCross(viewDirection, new Vector3(camera.up)));
+
+    // compute rotateAxis to rotate camera
+    const rotateStep = ROT_VELOCITY * elapsed;
+    let rotateAxis = new Vector3();
+
+    if (pressing.i) {
+        rotateAxis = VectorAdd(rotateAxis, rightDirection);
+    } else if (pressing.k) {
+        rotateAxis = VectorMinus(rotateAxis, rightDirection);
+    }
+
+    if (pressing.j) {
+        rotateAxis = VectorAdd(rotateAxis, new Vector3(camera.up));
+    } else if (pressing.l) {
+        rotateAxis = VectorMinus(rotateAxis, new Vector3(camera.up));
+    }
+
+    // rotate camera according pressing
+    rotateCamera(rotateStep, rotateAxis);
+
+    // rotate camera according mouse movement
+    if (document.pointerLockElement) {
+        rotateCamera(-xMove * 0.1, new Vector3([0.0, 1.0, 0.0]));
+
+        viewDirection = VectorNormalize(VectorMinus(new Vector3(camera.at), new Vector3(camera.eye)));
+        rightDirection = VectorNormalize(VectorCross(viewDirection, new Vector3(camera.up)));
+        rotateCamera(-yMove * 0.1, rightDirection);
+        xMove = yMove = 0;
+    }
+
+    // compute moveVector to move camera
     const moveStep = MOVE_VELOCITY * elapsed;
     let moveVector = new Vector3();
-    const viewDirection = VectorNormalize(VectorMinus(new Vector3(camera.at), new Vector3(camera.eye)));
-    const rightDirection = VectorNormalize(VectorCross(viewDirection, new Vector3(camera.up)));
 
     if (pressing.w) {
         moveVector = VectorAdd(moveVector, viewDirection);
@@ -282,25 +335,10 @@ function moveAndRotateCamera(camera, elapsed, pressing) {
     // move camera
     camera.eye = VectorAdd(moveVector, new Vector3(camera.eye)).elements;
     camera.at = VectorAdd(moveVector, new Vector3(camera.at)).elements;
+}
 
-    // compute rotateAxis to rotate camera
-    const rotateStep = ROT_VELOCITY * elapsed;
-    let rotateAxis = new Vector3();
-
-    if (pressing.i) {
-        rotateAxis = VectorAdd(rotateAxis, rightDirection);
-    } else if (pressing.k) {
-        rotateAxis = VectorMinus(rotateAxis, rightDirection);
-    }
-
-    if (pressing.j) {
-        rotateAxis = VectorAdd(rotateAxis, new Vector3(camera.up));
-    } else if (pressing.l) {
-        rotateAxis = VectorMinus(rotateAxis, new Vector3(camera.up));
-    }
-
-    // rotate camera
-    if (rotateAxis.elements[0] !== 0 || rotateAxis.elements[1] !== 0 || rotateAxis.elements[2] !== 0) {
+function rotateCamera(rotateStep, rotateAxis) {
+    if (rotateStep !== 0 && (rotateAxis.elements[0] !== 0 || rotateAxis.elements[1] !== 0 || rotateAxis.elements[2] !== 0)) {
         const rotateMat = new Matrix4().setRotate(rotateStep, ...rotateAxis.elements);
         let eyeVec = new Vector3(camera.eye);
         let atVec = new Vector3(camera.at);
