@@ -80,7 +80,7 @@ function main() {
 
     // set the clear color and enable the depth test
     gl.enable(gl.DEPTH_TEST);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.7, 0.7, 0.7, 1.0);
 
     const waitResourceLoad = () => {
         setTimeout(() => {

@@ -47,8 +47,8 @@ const generalObjectFragmentShaderSrc = `
         
         vec3 color = ambient + diffuse;
         
-        float fogFactor = (140.0 - v_Dist) / (120.0 - 55.0);
-        color = mix(vec3(0.0, 0.0, 0.0), color, clamp(fogFactor, 0.0, 1.0));
+        float fogFactor = (160.0 - v_Dist) / (160.0 - 30.0);
+        color = mix(vec3(0.7, 0.7, 0.7), color, clamp(fogFactor, 0.0, 1.0));
         gl_FragColor = vec4(color, u_Color.a);
     }
 `;
@@ -107,8 +107,8 @@ const texturedObjectFragmentShaderSrc = `
        
         vec4 color = vec4(ambient + diffuse, sampleColor.a);
         
-        float fogFactor = (140.0 - v_Dist) / (120.0 - 55.0);
-        vec3 colorWithFog = mix(vec3(0.0, 0.0, 0.0), vec3(color), clamp(fogFactor, 0.0, 1.0));
+        float fogFactor = (160.0 - v_Dist) / (160.0 - 30.0);
+        vec3 colorWithFog = mix(vec3(0.7, 0.7, 0.7), vec3(color), clamp(fogFactor, 0.0, 1.0));
         
         gl_FragColor = vec4(colorWithFog, color.a);
     }
