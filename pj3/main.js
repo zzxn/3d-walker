@@ -16,14 +16,19 @@ let totalResourceToLoad = 8;
 
 function main() {
     const canvas = document.getElementById("webgl");
+    const hud = document.getElementById("hud");
     const gl = canvas.getContext('webgl2');
     if (!gl) {
         console.log('failed to get the rendering context for WebGL');
         return;
     }
+    gl.canvas = canvas;
 
     // init aspect radio
+    canvas.width = hud.width = canvas.clientWidth;
+    canvas.height = hud.height = canvas.clientHeight;
     camera.aspect = canvas.width / canvas.height;
+    gl.viewport(0, 0, canvas.width, canvas.height);
 
     // initialize shaders
     const generalProgram = createProgram(gl, generalObjectVertexShaderSrc, generalObjectFragmentShaderSrc);
@@ -184,17 +189,26 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
         }
     });
 
+    mipmapOn = false;
     document.addEventListener("keydown", ev => {
-        if (pressing.hasOwnProperty(ev.key)) {
-            pressing[ev.key] = true;
+        if (pressing.hasOwnProperty(ev.key.toLowerCase())) {
+            pressing[ev.key.toLowerCase()] = true;
+        }
+        if (ev.key.toLowerCase() === "m") {
+            if (mipmapOn) {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            } else {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            }
+            mipmapOn = !mipmapOn;
         }
     });
 
-    const canvas = document.getElementById("webgl");
+    const hud = document.getElementById("hud");
 
-    canvas.addEventListener("click", ev => {
+    gl.canvas.addEventListener("click", ev => {
         if (!document.pointerLockElement) {
-            canvas.requestPointerLock();
+            gl.canvas.requestPointerLock();
         }
     });
     document.addEventListener("mousemove", ev => {
@@ -202,29 +216,43 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
         yMove = ev.movementY;
     });
 
-    const mipmapCheckbox = document.getElementById("mipmap");
-    mipmapCheckbox.addEventListener("change", ev => {
-        if (mipmapCheckbox.checked) {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        } else {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        }
-    });
-
     const monitorKeyboard = (lastTime) => {
         requestAnimationFrame(() => {
             let now = Date.now();
             const elapsed = (now - lastTime) / 1000;
 
-            // log data
-            const dataElem = document.getElementById("data");
-            dataElem.innerHTML = `
-            <b>position:</b> ${camera.eye[0].toFixed(2)}, ${camera.eye[1].toFixed(2)}, ${camera.eye[2].toFixed(2)}
-            <br>
-            <b>light: </b>${pressing.f ? 'OPEN' : 'CLOSE'}
-            <br>
-            <b>FPS: </b>${Math.trunc(1000 / (now - lastTime))}
-            `;
+            if (gl.canvas.width !== gl.canvas.clientWidth || gl.canvas.height !== gl.canvas.clientHeight) {
+                gl.canvas.width = hud.width = gl.canvas.clientWidth;
+                gl.canvas.height = hud.height = gl.canvas.clientHeight;
+                console.log(gl.canvas.width + " * " + gl.canvas.height);
+                camera.aspect = gl.canvas.width / gl.canvas.height;
+                gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            }
+
+            const ctx = hud.getContext("2d");
+            hud.width = hud.width;
+            ctx.font = '20px "Times New Roman"';
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillText(`eye: ${camera.eye[0].toFixed(2)}, ${camera.eye[1].toFixed(2)}, ${camera.eye[2].toFixed(2)}`
+            , 25, 25);
+            ctx.fillText(`at: ${camera.at[0].toFixed(2)}, ${camera.at[1].toFixed(2)}, ${camera.at[2].toFixed(2)}`
+                , 25, 50);
+            ctx.fillText(`up: ${camera.up[0].toFixed(2)}, ${camera.up[1].toFixed(2)}, ${camera.up[2].toFixed(2)}`
+                , 25, 75);
+            ctx.fillText( `light [F]: ${pressing.f ? 'OPEN' : 'CLOSE'}`, 25, 100);
+            ctx.fillText( `mipmap [M]: ${mipmapOn ? 'OPEN' : 'CLOSE'}`, 25, 125);
+            ctx.fillText( `FPS: ${Math.trunc(1000 / (now - lastTime))}`, 25, 150);
+            ctx.fillText( "1. CLICK THE CANVAS TO CONTROL CAMERA WITH YOUR MOUSE", 25, hud.height - 50);
+            ctx.fillText( "2. PRESS [W] [A] [S] [D] TO MOVE", 25, hud.height - 25);
+
+            ctx.beginPath();
+            ctx.moveTo(hud.width / 2 - 20, hud.height / 2);
+            ctx.lineTo(hud.width / 2 + 20, hud.height / 2);
+            ctx.moveTo(hud.width / 2, hud.height / 2 - 20);
+            ctx.lineTo(hud.width / 2, hud.height / 2 + 20);
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.stroke();
 
             let someKeyPressed = false;
             for (let key in pressing) {
@@ -278,6 +306,11 @@ function setKeyboardEventListeners(gl, textureProgram, texturedObjects, generalP
     };
 
     monitorKeyboard(Date.now());
+}
+
+function drawHud() {
+    const hudCanvas = document.getElementById("hud");
+
 }
 
 // move and rotate camera according to elapsed time and pressed key
